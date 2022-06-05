@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 scrapy = "*"
 viberbot = "*"
-flask = "*"
 
 [dev-packages]
 black = "*"
