@@ -4,8 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-scrapy = "*"
-viberbot = "*"
+scrapy = "2.6.1"
 
 [dev-packages]
 black = "*"
