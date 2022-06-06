@@ -1,7 +1,10 @@
 import re
-import viberbot.api
 import scrapy
+import smtplib
+import ssl
 import datetime as dt
+
+from email.message import EmailMessage
 
 
 class VikPlovdivSpider(scrapy.Spider):
@@ -29,14 +32,6 @@ class VikPlovdivSpider(scrapy.Spider):
         f"-{month_names_dict[today_date_list[1]]}"
         f"-{today_date_list[2]}"
     )
-    # today_date_string_bg = "30-Май-2022"
-
-    bot_configuration = viberbot.BotConfiguration(
-        name="vikplovdivbot",
-        avatar="https://vik.bg/data/images/vik.png",
-        auth_token="4f4cfec6d3e7dd66-38be5214efbf8b77-6db059f03ed8b3fa",
-    )
-    viber = viberbot.Api(bot_configuration=bot_configuration)
 
     def parse(self, response, **kwargs):
         all_publications = response.xpath(
@@ -63,6 +58,7 @@ class VikPlovdivSpider(scrapy.Spider):
                 "No h3/a elements found in the articles section. "
                 "Check the website for changes."
             )
+        alerts = []
         for i in range(len(all_publications)):
             current_publication = all_publications[i]
             if self.today_date_string_bg in current_publication.get():
@@ -72,7 +68,7 @@ class VikPlovdivSpider(scrapy.Spider):
                     f"/text()[normalize-space()]"
                 ).getall()
                 text = ". ".join(text).replace("\xa0", " ").replace("  ", " ")
-                print(text)
+                alerts.append(text)
                 if i + 1 == len(all_publications):
                     next_page = response.xpath('//a[text()="›"]/@href').get()
                     if not next_page:
@@ -80,3 +76,18 @@ class VikPlovdivSpider(scrapy.Spider):
                             "Next page button not found. Check the xpath."
                         )
                     yield response.follow(url=next_page)
+        if alerts:
+            self.send_email_with_alerts(alerts)
+
+    def send_email_with_alerts(self, alerts):
+        msg = EmailMessage()
+        msg.set_content("\n\n".join(alerts))
+        msg["Subject"] = "New ViK Plovdiv Alerts"
+        msg["From"] = "python_auto@abv.bg"
+        msg["To"] = "nikolay_skomorohov@protonmail.com"
+        context = ssl.create_default_context()
+        server = smtplib.SMTP_SSL("smtp.abv.bg", 465, context=context)
+        server.set_debuglevel(2)
+        server.login("python_auto@abv.bg", "huskarl2006")
+        server.send_message(msg)
+        server.quit()
