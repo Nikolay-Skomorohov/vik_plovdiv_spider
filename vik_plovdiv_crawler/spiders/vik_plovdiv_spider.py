@@ -44,7 +44,9 @@ class VikPlovdivSpider(scrapy.Spider):
                 "less than 5. Check the website for changes and "
                 "adjust the xpath."
             )
-        date_regex = re.compile(r"(?i)Публикувано на:?\s?(\d{1,2}\w+-\d{2,4})")
+        date_regex = re.compile(
+            r"(?i)Публикувано на:?\s?(\d{1,2}-\w+-\d{2,4})"
+        )
         date_check_regex = [
             re.search(date_regex, x.get()) for x in all_publications
         ]
@@ -79,7 +81,8 @@ class VikPlovdivSpider(scrapy.Spider):
         if alerts:
             self.send_email_with_alerts(alerts)
 
-    def send_email_with_alerts(self, alerts):
+    @staticmethod
+    def send_email_with_alerts(alerts):
         msg = EmailMessage()
         msg.set_content("\n\n".join(alerts))
         msg["Subject"] = "New ViK Plovdiv Alerts"
